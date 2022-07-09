@@ -11,13 +11,9 @@ const client = new Client({
 
 const cmds = new Commands(client)
 
-client.login(process.env.CLIENT_SECRET, () =>
+client.on('ready', () =>
 {
-    let reactionMsg = JSON.parse(fs.readFileSync(`${__dirname}/values.json`))
-    client.channels.fetch(reactionMsg.channelID).then(channel =>
-        {
-            channel.messages.fetch(reactionMsg.msgID)
-        })
+    console.log('ready to shoot')
 })
 
 client.on('message', (message) =>
@@ -41,7 +37,12 @@ client.on('message', (message) =>
                 break
             case 'restore':
                 cmds.restore(message.guild)
+                break
+            case 'help':
+                cmds.help(message)
+                break
         }
     }
 })
 
+client.login(process.env.CLIENT_SECRET)

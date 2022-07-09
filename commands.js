@@ -1,4 +1,5 @@
 const fs = require('fs')
+const values = require('./values.json')
 
 module.exports = class Commands {
     intervals
@@ -17,11 +18,9 @@ module.exports = class Commands {
 
             let channel = reaction.message.channel
             let pingsRole = channel.guild.roles.cache.find(role => role.name === 'pings')
-            //console.log(pingsRole)
+            let guild = client.guilds.cache.get(reaction.message.guild.id)
 
-            console.log(client.guild.cache.get(reaction.guild.id))
-
-            // add role to user
+            guild.members.cache.get(user.id).roles.add(pingsRole)            
         })
 
         client.on('messageReactionRemove', (reaction, user) =>
@@ -31,20 +30,20 @@ module.exports = class Commands {
 
             let channel = reaction.message.channel
             let pingsRole = channel.guild.roles.cache.find(role => role.name === 'pings')
+            let guild = client.guilds.cache.get(reaction.message.guild.id)
 
-            console.log('user unreacted')
-            //user.roles.remove(pingsRole)
-
-            // remove role from user
+            guild.members.cache.get(user.id).roles.remove(pingsRole) 
         })
     }
 
     async init(server, channelCount) {
 
+        let pingRole
+
         server.roles.create({
             name: 'pings',
             color: '#ff0000',
-        })
+        }).then(role => pingRole = role.id)
 
         let everyone = server.roles.cache.find(role => role.name === '@everyone')
 
@@ -60,7 +59,7 @@ module.exports = class Commands {
             channel.send('**React to this message to receive pings**').then(async message => {
                 await message.react('🔔')
                 fs.writeFileSync(`${__dirname}/values.json`,
-                    JSON.stringify({ msgID: message.id, channelID: channel.id }))
+                    JSON.stringify({ msgID: message.id, channelID: channel.id, roleID: pingRole }))
             })
         })
 
@@ -75,9 +74,15 @@ module.exports = class Commands {
     async startPing(message) {
         await this.refreshPingChannels(message.guild)
 
+        let pingRole = message.guild.roles.cache.get(values.roleID)
+
         this.pingChannels.forEach(async channel => {
+            
+            if (channel.name == 'react-pings')
+                return
+
             this.intervals.push(setInterval(async () => {
-                channel.send('@everyone')
+                channel.send(`${pingRole}\nToggle pings by reacting in <#${values.channelID}>`)
                 await new Promise(r => setTimeout(r, 1000))
             }, 1000))
         })
@@ -111,5 +116,16 @@ module.exports = class Commands {
 
     async refreshPingChannels(server) {
         this.pingChannels = await server.channels.cache.filter(channel => channel.name.startsWith('bot-ping') || channel.name == 'react-pings')
+    }
+
+    help(message)
+    {
+        message.channel.send('**Commands:**\n\n' +
+            '`init <channelCount>` - Initialize the bot\n' +
+            '`startping` - Start pinging\n' +
+            '`pauseping` - Pause pinging\n' +
+            '`restore` - Revert all changes made by the bot\n' +
+            '`help` - Show this message\n' +
+            'the commands prefix is ' + `**${process.env.BOT_PREFIX}**`)
     }
 }
