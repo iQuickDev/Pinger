@@ -13,7 +13,8 @@ const cmds = new Commands(client)
 
 client.on('ready', () =>
 {
-    console.log('ready to shoot')
+    console.log('client ready, invite the bot with the following link\n' +
+        `https://discordapp.com/oauth2/authorize?client_id=${client.user.id}&scope=bot&permissions=8`)
 })
 
 client.on('message', (message) =>
